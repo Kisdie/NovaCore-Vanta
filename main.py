@@ -279,6 +279,29 @@ def builtin_lab_dlbili(args):
         print("用法：lab_dlbili <URL 或 BV 号> [Cookie]")
         return
 
+    # ------------------------------------------------------------------
+    # ① 先找 ffmpeg，找不到就报错并给出下载链接
+    # ------------------------------------------------------------------
+    ffmpeg_bin = shutil.which("ffmpeg")                       # PATH 里找
+    if not ffmpeg_bin:
+        # 再扫几个常见安装目录
+        for cand in (
+            r"C:\ffmpeg\bin\ffmpeg.exe",
+            r"C:\Program Files\FFmpeg\bin\ffmpeg.exe",
+            r"%USERPROFILE%\scoop\apps\ffmpeg\current\bin\ffmpeg.exe",
+            r"%USERPROFILE%\chocolatey\bin\ffmpeg.exe",
+        ):
+            cand = os.path.expandvars(cand)
+            if os.path.isfile(cand):
+                ffmpeg_bin = cand
+                break
+    if not ffmpeg_bin:
+        print("❌  未检测到 ffmpeg.exe，请先安装后再试！")
+        print("   官方下载：https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.0-essentials_build.zip")
+        print("   安装后把 ffmpeg.exe 所在目录加入到系统 PATH")
+        return
+    # ------------------------------------------------------------------
+
     raw = args[0]
     if raw.startswith("http"):
         url = raw
@@ -297,60 +320,60 @@ def builtin_lab_dlbili(args):
     }
 
     resp_ = requests.get(url, headers=headers)
-    resp = resp_.text
+    resp  = resp_.text
     resp_.close()
 
-    tree = etree.HTML(resp)
+    tree  = etree.HTML(resp)
     title = tree.xpath('//h1/text()')[0]
 
-    # 查找 playinfo
+    # 解析 playinfo
     try:
-        tree1 = tree.xpath('/html/head/script[4]/text()')[0]
-        tree1 = re.sub(r'window.__playinfo__=', '', tree1)
-        tree1 = json.loads(tree1)
-    except:
-        print("未在 script[4] 找到 playinfo，尝试 script[3] …")
-        tree1 = tree.xpath('/html/head/script[3]/text()')[0]
-        tree1 = re.sub(r'window.__playinfo__=', '', tree1)
-        tree1 = json.loads(tree1)
+        info_text = tree.xpath('/html/head/script[4]/text()')[0]
+        info_text = re.sub(r'window\.__playinfo__=', '', info_text)
+        playinfo  = json.loads(info_text)
+    except Exception:
+        info_text = tree.xpath('/html/head/script[3]/text()')[0]
+        info_text = re.sub(r'window\.__playinfo__=', '', info_text)
+        playinfo  = json.loads(info_text)
 
-    # 最高画质
-    id_list = [video['id'] for video in tree1['data']['dash']['video']]
-    video_url = tree1['data']['dash']['video'][id_list.index(max(id_list))]['backupUrl'][0]
-
-    id_list = [audio['id'] for audio in tree1['data']['dash']['audio']]
-    audio_url = tree1['data']['dash']['audio'][id_list.index(max(id_list))]['backupUrl'][0]
+    # 取最高画质
+    video_url = max(playinfo['data']['dash']['video'], key=lambda v: v['id'])['backupUrl'][0]
+    audio_url = max(playinfo['data']['dash']['audio'], key=lambda a: a['id'])['backupUrl'][0]
 
     print("正在下载：", title)
 
-    headers521 = {
+    headers_down = {
         "referer": url,
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.74 Safari/537.36",
     }
 
-    resp1_ = requests.get(video_url, headers=headers521)
-    resp1 = resp1_.content
-    resp2_ = requests.get(audio_url, headers=headers521)
-    resp2 = resp2_.content
-    resp1_.close()
-    resp2_.close()
+    # 下载
+    video_bytes = requests.get(video_url, headers=headers_down).content
+    audio_bytes = requests.get(audio_url, headers=headers_down).content
 
-    new_title = re.sub(r'[\\/:*?"<>|\n]', '_', title)
-    title0 = new_title + "0"
+    # 保存
+    safe_title = re.sub(r'[\\/:*?"<>|\n]', '_', title)
+    tmp_name   = f"{safe_title}0"
+    v_path     = os.path.join(out_dir, f"{tmp_name}.mp4")
+    a_path     = os.path.join(out_dir, f"{tmp_name}.flac")
+    final_path = os.path.join(out_dir, f"{safe_title}.mp4")
 
-    with open(os.path.join(out_dir, f"{title0}.mp4"), 'wb') as f:
-        f.write(resp1)
-    with open(os.path.join(out_dir, f"{title0}.flac"), 'wb') as x:
-        x.write(resp2)
+    with open(v_path, "wb") as f: f.write(video_bytes)
+    with open(a_path, "wb") as f: f.write(audio_bytes)
 
     # 合并
-    com = fr'ffmpeg-8.0-essentials_build\bin\ffmpeg.exe -i "{out_dir}\{title0}.mp4" -i "{out_dir}\{title0}.flac" -acodec copy -vcodec copy "{out_dir}\{new_title}.mp4"'
-    os.system(com)
+    cmd = [
+        ffmpeg_bin, "-hide_banner", "-loglevel", "error",
+        "-i", v_path, "-i", a_path,
+        "-c:v", "copy", "-c:a", "copy", final_path
+    ]
+    subprocess.run(cmd, check=True)
 
-    os.remove(os.path.join(out_dir, f"{title0}.mp4"))
-    os.remove(os.path.join(out_dir, f"{title0}.flac"))
+    # 清理
+    os.remove(v_path)
+    os.remove(a_path)
 
-    print("下载完成 →", os.path.join(out_dir, f"{new_title}.mp4"))
+    print("下载完成 →", final_path)
 
 
 # ---------------- 内建命令总表 ----------------
