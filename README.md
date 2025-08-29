@@ -1,57 +1,62 @@
-基础命令：
+1. 本仓库仅供学习网络安全、渗透测试及防御研究。
+   
+2. 禁止用于任何未经授权的攻击活动。
 
-  help---显示本帮助
-  
-  cls---清屏
-  
-  cd---切换当前目录
-  
-  exit / quit---退出程序
+3. 若违反当地法律，一切后果由使用者自行承担。
 
-文件与目录：
 
-  ls / dir---列出当前目录内容
-  
-  cat 文件---查看文本文件
-  
-  touch---创建空文件或更新修改时间
-  
-  cp---复制文件或目录
-  
-  mv---移动或重命名
-  
-  rm---删除文件或空目录
-  
-  edit---用默认编辑器打开文件
+cls                 —— 清屏
 
-系统与网络：
+cd <路径>           —— 切换目录
 
-  env / set---打印所有环境变量
-  
-  export k=v---临时设置环境变量
-  
-  uptime---查看系统已运行时长
-  
-  which---查找可执行文件完整路径
-  
-  wget URL---简易下载文件到当前目录
-  
-  pip---直接调用 pip 安装/管理包
+ls / dir            —— 彩色列目录
 
-网络攻击与渗透：
+cat <文件>          —— 查看文本
 
-  lab_ddos---DDos攻击
-  
-  lab_dlbili---BiliBili视频数据爬取
+touch <文件>        —— 创建空文件
 
-其他：
+history             —— 查看历史
 
-  history---显示历史命令列表
-  
-  !n---执行历史第 n 条命令
-  
-  calc---简易计算器（支持 + - * /）
-  
-  py---进入交互式 Python 解释器
-  
-  reload---重启本终端
+env / set           —— 打印环境变量
+
+export key=value    —— 临时变量
+
+calc <表达式>       —— 计算器
+
+uptime              —— 系统运行时长
+
+wget <URL>          —— 下载文件
+
+edit <文件>         —— 打开编辑器
+
+which <命令>        —— 查找可执行文件
+
+grep <模式> [文件]  —— 搜索文本
+
+cp / mv / rm        —— 复制/移动/删除
+
+py                  —— 交互 Python
+
+reload              —— 重启终端
+
+pip install 包      —— 内嵌 pip 安装
+
+【网络实验】
+lab_ddos <IP> <PORT> <THREAD> <SEC>   —— UDP Flood
+
+lab_dlbili <URL/BV> [Cookie]  —— B 站下载
+
+
+【远程控制（多服务器）】
+
+server add <name> <IP> <PORT>  —— 添加服务器
+
+server list                      —— 查看所有
+
+server select <name>             —— 选择当前
+
+server start / stop / status     —— 控制服务器
+
+server shell                     —— 进入 Shell
+
+genclient <前缀> [IP] [PORT]     —— 生成客户端 EXE
